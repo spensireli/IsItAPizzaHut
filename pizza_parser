@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+
+from bs4 import BeautifulSoup
+import requests
+import shutil
+import os
+
+out_dir = 'img/'
+url = 'http://usedtobeapizzahut.blogspot.com/'
+errors = []
+success = 0
+
+print('Are your ready to out pizza the hut?')
+
+html = BeautifulSoup(requests.get(url).text, 'html.parser')
+
+
+def download_img(src):
+    global success
+    ## Set up the image URL and filename
+    filename = src.split("/")[-1]
+
+    if os.path.exists(out_dir + filename):
+        print('File exists, skipping')
+        return
+
+    # Open the url image, set stream to True, this will return the stream content.
+    try:
+        r = requests.get(src, stream = True)
+    except:
+        errors.append(src)
+        print('Error...')
+        return
+
+    # Check if the image was retrieved successfully
+    if r.status_code == 200:
+        # Set decode_content value to True, otherwise the downloaded image file's size will be zero.
+        r.raw.decode_content = True
+
+        # Open a local file with wb ( write binary ) permission.
+        with open(out_dir+ filename, 'wb') as f:
+            shutil.copyfileobj(r.raw, f)
+
+        print('Image sucessfully Downloaded: ',filename)
+        success += 1
+    else:
+        print('Image Couldn\'t be retreived')
+
+
+for img in html.find_all('img'):
+    src = img['src']
+    if '.gif' not in src:
+        download_img(src)
+
+
+print(f'Congratulations, you did it... you Out Pizza\'d the Hut successfully {success} times '
+      f'and only dropped the ball {len(errors)} times.')
+
+if errors:
+    print(f'List of errors:')
+    for e in errors:
+        print('\t', e)
+
